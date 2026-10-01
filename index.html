@@ -1,0 +1,3260 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>バドミントンAI動作解析</title>
+
+
+  <style>
+
+    /* ================================
+       全体
+    ================================ */
+
+    body {
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+      margin: 0;
+      padding: 20px;
+
+      background: #f3f3f3;
+    }
+
+
+    .container {
+      max-width: 950px;
+
+      margin: auto;
+
+      background: white;
+
+      padding: 20px;
+
+      border-radius: 12px;
+    }
+
+
+    h1 {
+      text-align: center;
+    }
+
+
+    .section {
+      margin-top: 20px;
+
+      padding: 15px;
+
+      border: 1px solid #ddd;
+
+      border-radius: 10px;
+    }
+
+
+    /* ================================
+       Before / After選択
+    ================================ */
+
+    .mode-selector {
+      margin-bottom: 15px;
+
+      padding: 12px;
+
+      background: #f5f5f5;
+
+      border-radius: 8px;
+    }
+
+
+    .mode-selector label {
+      display: inline-block;
+
+      margin: 5px 12px 5px 0;
+
+      cursor: pointer;
+    }
+
+
+    /* ================================
+       動画
+    ================================ */
+
+    .video-area {
+      position: relative;
+
+      width: 100%;
+
+      margin-top: 15px;
+
+      background: black;
+    }
+
+
+    video {
+      display: block;
+
+      width: 100%;
+    }
+
+
+    canvas {
+      position: absolute;
+
+      left: 0;
+      top: 0;
+
+      width: 100%;
+      height: 100%;
+
+      pointer-events: none;
+    }
+
+
+    /* ================================
+       ボタン
+    ================================ */
+
+    button {
+      padding: 12px 18px;
+
+      margin: 5px;
+
+      font-size: 16px;
+
+      cursor: pointer;
+
+      border-radius: 7px;
+
+      border: 1px solid #bbb;
+
+      background: white;
+    }
+
+
+    button:hover {
+      background: #eeeeee;
+    }
+
+
+    /* ================================
+       現在時間
+    ================================ */
+
+    #timeDisplay {
+      margin-top: 10px;
+
+      padding: 10px;
+
+      background: #f5f5f5;
+
+      border-radius: 8px;
+
+      font-size: 20px;
+
+      font-weight: bold;
+
+      text-align: center;
+    }
+
+
+    /* ================================
+       コマ送り
+    ================================ */
+
+    .frame-controls {
+      margin-top: 8px;
+
+      display: flex;
+
+      justify-content: center;
+
+      align-items: center;
+
+      flex-wrap: wrap;
+
+      gap: 4px;
+    }
+
+
+    .frame-controls button {
+      min-width: 110px;
+    }
+
+
+    .control-group {
+      margin-top: 10px;
+
+      text-align: center;
+    }
+
+
+    /* ================================
+       AI状態
+    ================================ */
+
+    #status {
+      margin-top: 15px;
+
+      padding: 12px;
+
+      background: #eeeeee;
+
+      border-radius: 8px;
+
+      font-weight: bold;
+    }
+
+
+    /* ================================
+       動作局面
+    ================================ */
+
+    .phase-selector {
+      margin-top: 18px;
+
+      text-align: center;
+    }
+
+
+    .phase-selector label {
+      font-weight: bold;
+
+      font-size: 16px;
+    }
+
+
+    #phaseSelect {
+      padding: 10px 14px;
+
+      margin-left: 5px;
+
+      font-size: 16px;
+
+      border-radius: 7px;
+
+      border: 1px solid #bbb;
+
+      background: white;
+    }
+
+
+    /* ================================
+       記録ボタン
+    ================================ */
+
+    #savePointButton {
+      margin-top: 15px;
+
+      padding: 14px 25px;
+
+      font-size: 17px;
+
+      font-weight: bold;
+    }
+
+
+    /* ================================
+       記録一覧
+    ================================ */
+
+    #savedPointsArea {
+      margin-top: 20px;
+
+      padding: 15px;
+
+      background: #f5f5f5;
+
+      border-radius: 10px;
+    }
+
+
+    .record-group {
+      margin-top: 15px;
+
+      padding: 12px;
+
+      background: #eeeeee;
+
+      border-radius: 8px;
+    }
+
+
+    .saved-point {
+      margin-top: 10px;
+
+      padding: 12px;
+
+      background: white;
+
+      border: 1px solid #ddd;
+
+      border-radius: 8px;
+    }
+
+
+    .saved-point-title {
+      font-weight: bold;
+
+      margin-bottom: 6px;
+    }
+
+
+    .jumpPointButton,
+    .deletePointButton {
+      margin-top: 8px;
+
+      padding: 7px 12px;
+
+      font-size: 13px;
+    }
+
+
+    /* ================================
+       比較
+    ================================ */
+
+    #comparisonArea {
+      margin-top: 15px;
+
+      padding: 15px;
+
+      background: #f5f5f5;
+
+      border-radius: 10px;
+
+      overflow-x: auto;
+    }
+
+
+    table {
+      width: 100%;
+
+      border-collapse: collapse;
+
+      margin-top: 10px;
+    }
+
+
+    th,
+    td {
+      padding: 10px;
+
+      border: 1px solid #ccc;
+
+      text-align: center;
+    }
+
+
+    th {
+      background: #eeeeee;
+    }
+
+
+    /* ================================
+       スマホ・タブレット
+    ================================ */
+
+    @media (max-width: 600px) {
+
+      body {
+        padding: 8px;
+      }
+
+
+      .container {
+        padding: 10px;
+      }
+
+
+      h1 {
+        font-size: 23px;
+      }
+
+
+      button {
+        padding: 10px;
+
+        font-size: 14px;
+      }
+
+
+      .frame-controls button {
+        min-width: auto;
+
+        flex: 1 1 30%;
+      }
+
+
+      #timeDisplay {
+        font-size: 17px;
+      }
+
+
+      .mode-selector label {
+        display: block;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+  <h1>
+    🏸 バドミントンAI動作解析
+  </h1>
+
+
+
+  <!-- ================================
+       ① 動画選択
+  ================================ -->
+
+  <div class="section">
+
+
+    <h2>
+      ① 動画を選択
+    </h2>
+
+
+    <div class="mode-selector">
+
+      <strong>
+        解析する動画：
+      </strong>
+
+
+      <label>
+
+        <input
+          type="radio"
+          name="analysisMode"
+          value="before"
+          checked
+        >
+
+        Before（練習前）
+
+      </label>
+
+
+      <label>
+
+        <input
+          type="radio"
+          name="analysisMode"
+          value="after"
+        >
+
+        After（練習後）
+
+      </label>
+
+    </div>
+
+
+    <input
+      type="file"
+      id="videoFile"
+      accept="video/*"
+    >
+
+
+  </div>
+
+
+
+  <!-- ================================
+       ② 動画
+  ================================ -->
+
+  <div class="section">
+
+
+    <h2>
+      ② 動画
+    </h2>
+
+
+    <div class="video-area">
+
+
+      <video
+        id="video"
+        controls
+        playsinline
+      ></video>
+
+
+      <canvas
+        id="canvas"
+      ></canvas>
+
+
+    </div>
+
+
+
+    <!-- 現在時間 -->
+
+    <div id="timeDisplay">
+
+      現在位置：0.00秒
+
+    </div>
+
+
+
+    <!-- コマ送り -->
+
+    <div class="frame-controls">
+
+
+      <button id="frameBackButton">
+
+        ｜◀ 1コマ
+
+      </button>
+
+
+      <button id="backButton">
+
+        ◀ 0.1秒
+
+      </button>
+
+
+      <button id="playPauseButton">
+
+        ▶ 再生 / ⏸ 一時停止
+
+      </button>
+
+
+      <button id="forwardButton">
+
+        0.1秒 ▶
+
+      </button>
+
+
+      <button id="frameForwardButton">
+
+        1コマ ▶｜
+
+      </button>
+
+
+    </div>
+
+
+
+    <!-- 再生速度 -->
+
+    <div class="control-group">
+
+      <strong>
+        再生速度：
+      </strong>
+
+
+      <button
+        class="speedButton"
+        data-speed="0.25"
+      >
+        0.25倍
+      </button>
+
+
+      <button
+        class="speedButton"
+        data-speed="0.5"
+      >
+        0.5倍
+      </button>
+
+
+      <button
+        class="speedButton"
+        data-speed="1"
+      >
+        1倍
+      </button>
+
+    </div>
+
+
+
+    <!-- 動作局面 -->
+
+    <div class="phase-selector">
+
+      <label for="phaseSelect">
+
+        動作局面：
+
+      </label>
+
+
+      <select id="phaseSelect">
+
+        <option value="テイクバック">
+          テイクバック
+        </option>
+
+        <option value="インパクト">
+          インパクト
+        </option>
+
+        <option value="フォロースルー">
+          フォロースルー
+        </option>
+
+        <option value="構え">
+          構え
+        </option>
+
+        <option value="踏み込み">
+          踏み込み
+        </option>
+
+        <option value="その他">
+          その他
+        </option>
+
+      </select>
+
+    </div>
+
+
+
+    <!-- 保存 -->
+
+    <div class="control-group">
+
+      <button id="savePointButton">
+
+        📌 この瞬間を記録
+
+      </button>
+
+    </div>
+
+
+
+    <!-- 保存一覧 -->
+
+    <div id="savedPointsArea">
+
+      <h3>
+        📊 記録した解析ポイント
+      </h3>
+
+
+      <div id="savedPointsList">
+
+        まだ記録されていません。
+
+      </div>
+
+    </div>
+
+
+  </div>
+
+
+
+  <!-- ================================
+       ③ AI解析
+  ================================ -->
+
+  <div class="section">
+
+
+    <h2>
+      ③ AI解析
+    </h2>
+
+
+    <button id="startButton">
+
+      AI解析開始
+
+    </button>
+
+
+    <button id="stopButton">
+
+      AI解析停止
+
+    </button>
+
+
+    <div id="status">
+
+      まず動画を選択してください。
+
+    </div>
+
+
+  </div>
+
+
+
+  <!-- ================================
+       ④ Before / After比較
+  ================================ -->
+
+  <div class="section">
+
+
+    <h2>
+      ④ Before / After比較
+    </h2>
+
+
+    <button id="compareButton">
+
+      📊 Before / Afterを比較
+
+    </button>
+
+
+    <div id="comparisonArea">
+
+      BeforeとAfterの解析ポイントを
+      記録してください。
+
+    </div>
+
+
+  </div>
+
+
+</div>
+
+
+
+<script type="module">
+
+
+// ==================================================
+// MediaPipe
+// ==================================================
+
+import {
+
+  PoseLandmarker,
+
+  FilesetResolver
+
+} from
+
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs";
+
+
+
+// ==================================================
+// HTML要素
+// ==================================================
+
+const video =
+  document.getElementById("video");
+
+
+const videoFile =
+  document.getElementById("videoFile");
+
+
+const canvas =
+  document.getElementById("canvas");
+
+
+const ctx =
+  canvas.getContext("2d");
+
+
+const startButton =
+  document.getElementById("startButton");
+
+
+const stopButton =
+  document.getElementById("stopButton");
+
+
+const status =
+  document.getElementById("status");
+
+
+const playPauseButton =
+  document.getElementById("playPauseButton");
+
+
+const frameBackButton =
+  document.getElementById("frameBackButton");
+
+
+const frameForwardButton =
+  document.getElementById("frameForwardButton");
+
+
+const backButton =
+  document.getElementById("backButton");
+
+
+const forwardButton =
+  document.getElementById("forwardButton");
+
+
+const timeDisplay =
+  document.getElementById("timeDisplay");
+
+
+const speedButtons =
+  document.querySelectorAll(".speedButton");
+
+
+const phaseSelect =
+  document.getElementById("phaseSelect");
+
+
+const savePointButton =
+  document.getElementById("savePointButton");
+
+
+const savedPointsList =
+  document.getElementById("savedPointsList");
+
+
+const compareButton =
+  document.getElementById("compareButton");
+
+
+const comparisonArea =
+  document.getElementById("comparisonArea");
+
+
+
+// ==================================================
+// AI関連
+// ==================================================
+
+let poseLandmarker =
+  null;
+
+
+let analyzing =
+  false;
+
+
+let lastVideoTime =
+  -1;
+
+
+let animationFrameId =
+  null;
+
+
+let currentVideoURL =
+  null;
+
+
+
+// ==================================================
+// 1コマ設定
+// ==================================================
+
+const FRAME_RATE =
+  30;
+
+
+const FRAME_TIME =
+  1 / FRAME_RATE;
+
+
+
+// ==================================================
+// 現在のAI解析結果
+// ==================================================
+
+let currentAngles =
+  null;
+
+
+
+// ==================================================
+// Before / After記録
+// ==================================================
+
+let beforePoints =
+  [];
+
+
+let afterPoints =
+  [];
+
+
+
+// ==================================================
+// 現在の解析モード
+// ==================================================
+
+function getAnalysisMode() {
+
+
+  const selected =
+
+    document.querySelector(
+
+      'input[name="analysisMode"]:checked'
+
+    );
+
+
+  return selected.value;
+
+
+}
+
+
+
+// ==================================================
+// 動画選択
+// ==================================================
+
+videoFile.addEventListener(
+
+  "change",
+
+  function () {
+
+
+    const file =
+
+      videoFile.files[0];
+
+
+    if (!file) {
+
+      return;
+
+    }
+
+
+
+    stopAnalysis(false);
+
+
+
+    if (currentVideoURL) {
+
+
+      URL.revokeObjectURL(
+
+        currentVideoURL
+
+      );
+
+
+    }
+
+
+
+    currentVideoURL =
+
+      URL.createObjectURL(file);
+
+
+
+    video.src =
+
+      currentVideoURL;
+
+
+
+    video.load();
+
+
+
+    lastVideoTime =
+      -1;
+
+
+    currentAngles =
+      null;
+
+
+
+    clearCanvas();
+
+
+
+    timeDisplay.textContent =
+
+      "現在位置：0.00秒";
+
+
+
+    const mode =
+
+      getAnalysisMode();
+
+
+
+    if (mode === "before") {
+
+
+      status.textContent =
+
+        "Before動画を読み込みました。AI解析開始を押してください。";
+
+
+    }
+
+    else {
+
+
+      status.textContent =
+
+        "After動画を読み込みました。AI解析開始を押してください。";
+
+
+    }
+
+
+  }
+
+);
+
+
+
+// ==================================================
+// MediaPipe AI準備
+// ==================================================
+
+async function createPoseLandmarker() {
+
+
+  status.textContent =
+
+    "AIを準備しています…";
+
+
+  try {
+
+
+    const vision =
+
+      await FilesetResolver.forVisionTasks(
+
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+
+      );
+
+
+
+    poseLandmarker =
+
+      await PoseLandmarker.createFromOptions(
+
+        vision,
+
+        {
+
+          baseOptions: {
+
+            modelAssetPath:
+
+              "./models/pose_landmarker_full.task"
+
+          },
+
+
+          runningMode:
+
+            "VIDEO",
+
+
+          numPoses:
+
+            1
+
+        }
+
+      );
+
+
+
+    status.textContent =
+
+      "AIの準備ができました。";
+
+
+    return true;
+
+
+  }
+
+
+  catch (error) {
+
+
+    console.error(error);
+
+
+    status.textContent =
+
+      "AIの読み込みでエラーが発生しました。";
+
+
+    return false;
+
+
+  }
+
+
+}
+
+
+
+// ==================================================
+// AI解析開始
+// ==================================================
+
+startButton.addEventListener(
+
+  "click",
+
+  async function () {
+
+
+    if (!video.src) {
+
+
+      status.textContent =
+
+        "先に動画を選択してください。";
+
+
+      return;
+
+
+    }
+
+
+
+    if (!poseLandmarker) {
+
+
+      const success =
+
+        await createPoseLandmarker();
+
+
+
+      if (!success) {
+
+        return;
+
+      }
+
+
+    }
+
+
+
+    if (analyzing) {
+
+      return;
+
+    }
+
+
+
+    if (
+
+      Number.isFinite(video.duration) &&
+
+      video.currentTime >= video.duration
+
+    ) {
+
+
+      video.currentTime =
+        0;
+
+
+    }
+
+
+
+    analyzing =
+      true;
+
+
+    lastVideoTime =
+      -1;
+
+
+
+    status.textContent =
+
+      "AI解析中です。";
+
+
+
+    try {
+
+
+      await video.play();
+
+
+    }
+
+
+    catch (error) {
+
+
+      console.error(error);
+
+
+    }
+
+
+
+    animationFrameId =
+
+      requestAnimationFrame(
+
+        detectPose
+
+      );
+
+
+  }
+
+);
+
+
+
+// ==================================================
+// AI解析停止
+// ==================================================
+
+stopButton.addEventListener(
+
+  "click",
+
+  function () {
+
+
+    video.pause();
+
+
+    stopAnalysis(true);
+
+
+  }
+
+);
+
+
+
+// ==================================================
+// AI停止処理
+// ==================================================
+
+function stopAnalysis(
+
+  showMessage = true
+
+) {
+
+
+  analyzing =
+    false;
+
+
+
+  if (
+
+    animationFrameId !== null
+
+  ) {
+
+
+    cancelAnimationFrame(
+
+      animationFrameId
+
+    );
+
+
+    animationFrameId =
+      null;
+
+
+  }
+
+
+
+  if (showMessage) {
+
+
+    status.textContent =
+
+      "AI解析を停止しました。";
+
+
+  }
+
+
+}
+
+
+
+// ==================================================
+// 動画終了
+// ==================================================
+
+video.addEventListener(
+
+  "ended",
+
+  function () {
+
+
+    stopAnalysis(false);
+
+
+    status.textContent =
+
+      "AI解析が終了しました。";
+
+
+  }
+
+);
+
+
+
+// ==================================================
+// AI解析ループ
+// ==================================================
+
+function detectPose() {
+
+
+  if (!analyzing) {
+
+    return;
+
+  }
+
+
+
+  if (video.ended) {
+
+
+    stopAnalysis(false);
+
+
+    status.textContent =
+
+      "AI解析が終了しました。";
+
+
+    return;
+
+
+  }
+
+
+
+  if (
+
+    !video.paused &&
+
+    video.readyState >= 2 &&
+
+    video.currentTime !== lastVideoTime
+
+  ) {
+
+
+    try {
+
+
+      const result =
+
+        poseLandmarker.detectForVideo(
+
+          video,
+
+          performance.now()
+
+        );
+
+
+
+      drawPose(result);
+
+
+
+      lastVideoTime =
+
+        video.currentTime;
+
+
+    }
+
+
+    catch (error) {
+
+
+      console.error(error);
+
+
+      stopAnalysis(false);
+
+
+      status.textContent =
+
+        "解析中にエラーが発生しました。";
+
+
+      return;
+
+
+    }
+
+
+  }
+
+
+
+  if (analyzing) {
+
+
+    animationFrameId =
+
+      requestAnimationFrame(
+
+        detectPose
+
+      );
+
+
+  }
+
+
+}
+
+
+
+// ==================================================
+// 現在フレームを解析
+// ==================================================
+
+function analyzeCurrentFrame() {
+
+
+  if (!poseLandmarker) {
+
+
+    status.textContent =
+
+      "先に「AI解析開始」を一度押してください。";
+
+
+    return;
+
+
+  }
+
+
+
+  if (video.readyState < 2) {
+
+    return;
+
+  }
+
+
+
+  try {
+
+
+    const result =
+
+      poseLandmarker.detectForVideo(
+
+        video,
+
+        performance.now()
+
+      );
+
+
+
+    drawPose(result);
+
+
+  }
+
+
+  catch (error) {
+
+
+    console.error(error);
+
+
+  }
+
+
+}
+
+
+
+// ==================================================
+// 再生 / 一時停止
+// ==================================================
+
+playPauseButton.addEventListener(
+
+  "click",
+
+  async function () {
+
+
+    if (!video.src) {
+
+
+      status.textContent =
+
+        "先に動画を選択してください。";
+
+
+      return;
+
+
+    }
+
+
+
+    if (video.paused) {
+
+
+      try {
+
+
+        await video.play();
+
+
+      }
+
+
+      catch (error) {
+
+
+        console.error(error);
+
+
+      }
+
+
+    }
+
+
+    else {
+
+
+      video.pause();
+
+
+      analyzeCurrentFrame();
+
+
+    }
+
+
+  }
+
+);
+
+
+
+// ==================================================
+// 1コマ戻る
+// ==================================================
+
+frameBackButton.addEventListener(
+
+  "click",
+
+  function () {
+
+
+    if (!video.src) {
+
+      return;
+
+    }
+
+
+    video.pause();
+
+
+    video.currentTime =
+
+      Math.max(
+
+        0,
+
+        video.currentTime - FRAME_TIME
+
+      );
+
+
+  }
+
+);
+
+
+
+// ==================================================
+// 1コマ進む
+// ==================================================
+
+frameForwardButton.addEventListener(
+
+  "click",
+
+  function () {
+
+
+    if (!video.src) {
+
+      return;
+
+    }
+
+
+    video.pause();
+
+
+
+    const duration =
+
+      Number.isFinite(video.duration)
+
+        ? video.duration
+
+        : video.currentTime + FRAME_TIME;
+
+
+
+    video.currentTime =
+
+      Math.min(
+
+        duration,
+
+        video.currentTime + FRAME_TIME
+
+      );
+
+
+  }
+
+);
+
+
+
+// ==================================================
+// 0.1秒戻る
+// ==================================================
+
+backButton.addEventListener(
+
+  "click",
+
+  function () {
+
+
+    if (!video.src) {
+
+      return;
+
+    }
+
+
+    video.pause();
+
+
+    video.currentTime =
+
+      Math.max(
+
+        0,
+
+        video.currentTime - 0.1
+
+      );
+
+
+  }
+
+);
+
+
+
+// ==================================================
+// 0.1秒進む
+// ==================================================
+
+forwardButton.addEventListener(
+
+  "click",
+
+  function () {
+
+
+    if (!video.src) {
+
+      return;
+
+    }
+
+
+    video.pause();
+
+
+
+    const duration =
+
+      Number.isFinite(video.duration)
+
+        ? video.duration
+
+        : video.currentTime + 0.1;
+
+
+
+    video.currentTime =
+
+      Math.min(
+
+        duration,
+
+        video.currentTime + 0.1
+
+      );
+
+
+  }
+
+);
+
+
+
+// ==================================================
+// シーク後AI再解析
+// ==================================================
+
+video.addEventListener(
+
+  "seeked",
+
+  function () {
+
+
+    updateTimeDisplay();
+
+
+    analyzeCurrentFrame();
+
+
+  }
+
+);
+
+
+
+// ==================================================
+// 時間表示
+// ==================================================
+
+video.addEventListener(
+
+  "timeupdate",
+
+  function () {
+
+
+    updateTimeDisplay();
+
+
+  }
+
+);
+
+
+function updateTimeDisplay() {
+
+
+  timeDisplay.textContent =
+
+    "現在位置：" +
+
+    video.currentTime.toFixed(2) +
+
+    "秒";
+
+
+}
+
+
+
+// ==================================================
+// 再生速度
+// ==================================================
+
+speedButtons.forEach(
+
+  function (button) {
+
+
+    button.addEventListener(
+
+      "click",
+
+      function () {
+
+
+        const speed =
+
+          Number(
+
+            button.dataset.speed
+
+          );
+
+
+        video.playbackRate =
+
+          speed;
+
+
+        status.textContent =
+
+          "再生速度：" +
+
+          speed +
+
+          "倍";
+
+
+      }
+
+    );
+
+
+  }
+
+);
+
+
+
+// ==================================================
+// 3点から角度計算
+// ==================================================
+
+function calculateAngle(
+
+  a,
+
+  b,
+
+  c
+
+) {
+
+
+  const radians =
+
+    Math.atan2(
+
+      c.y - b.y,
+
+      c.x - b.x
+
+    )
+
+    -
+
+    Math.atan2(
+
+      a.y - b.y,
+
+      a.x - b.x
+
+    );
+
+
+
+  let angle =
+
+    Math.abs(
+
+      radians *
+
+      180 /
+
+      Math.PI
+
+    );
+
+
+
+  if (angle > 180) {
+
+
+    angle =
+
+      360 - angle;
+
+
+  }
+
+
+
+  return Math.round(angle);
+
+
+}
+
+
+
+// ==================================================
+// 角度表示
+// ==================================================
+
+function drawAngle(
+
+  landmark,
+
+  angle,
+
+  label
+
+) {
+
+
+  const x =
+
+    landmark.x *
+
+    canvas.width;
+
+
+
+  const y =
+
+    landmark.y *
+
+    canvas.height;
+
+
+
+  ctx.font =
+
+    "bold 24px sans-serif";
+
+
+
+  const text =
+
+    label +
+
+    " " +
+
+    angle +
+
+    "°";
+
+
+
+  const width =
+
+    ctx.measureText(text).width;
+
+
+
+  ctx.fillStyle =
+
+    "rgba(255,255,255,0.85)";
+
+
+
+  ctx.fillRect(
+
+    x + 8,
+
+    y - 38,
+
+    width + 10,
+
+    32
+
+  );
+
+
+
+  ctx.fillStyle =
+
+    "black";
+
+
+
+  ctx.fillText(
+
+    text,
+
+    x + 13,
+
+    y - 13
+
+  );
+
+
+}
+
+
+
+// ==================================================
+// Canvas消去
+// ==================================================
+
+function clearCanvas() {
+
+
+  ctx.clearRect(
+
+    0,
+
+    0,
+
+    canvas.width,
+
+    canvas.height
+
+  );
+
+
+}
+
+
+
+// ==================================================
+// 解析ポイント保存
+// ==================================================
+
+savePointButton.addEventListener(
+
+  "click",
+
+  function () {
+
+
+    if (!video.src) {
+
+
+      status.textContent =
+
+        "先に動画を選択してください。";
+
+
+      return;
+
+
+    }
+
+
+
+    if (!currentAngles) {
+
+
+      status.textContent =
+
+        "このフレームはまだAI解析されていません。";
+
+
+      return;
+
+
+    }
+
+
+
+    const point = {
+
+
+      id:
+
+        Date.now(),
+
+
+      phase:
+
+        phaseSelect.value,
+
+
+      time:
+
+        video.currentTime,
+
+
+      leftElbow:
+
+        currentAngles.leftElbow,
+
+
+      rightElbow:
+
+        currentAngles.rightElbow,
+
+
+      leftKnee:
+
+        currentAngles.leftKnee,
+
+
+      rightKnee:
+
+        currentAngles.rightKnee
+
+
+    };
+
+
+
+    const mode =
+
+      getAnalysisMode();
+
+
+
+    if (mode === "before") {
+
+
+      beforePoints.push(point);
+
+
+    }
+
+
+    else {
+
+
+      afterPoints.push(point);
+
+
+    }
+
+
+
+    renderSavedPoints();
+
+
+
+    status.textContent =
+
+      (mode === "before"
+
+        ? "Before"
+
+        : "After")
+
+      +
+
+      "：" +
+
+      phaseSelect.value +
+
+      "を記録しました。";
+
+
+  }
+
+);
+
+
+
+// ==================================================
+// 保存ポイント表示
+// ==================================================
+
+function renderSavedPoints() {
+
+
+  savedPointsList.innerHTML = "";
+
+
+  if (
+
+    beforePoints.length === 0 &&
+
+    afterPoints.length === 0
+
+  ) {
+
+
+    savedPointsList.innerHTML =
+
+      "まだ記録されていません。";
+
+
+    return;
+
+
+  }
+
+
+
+  renderPointGroup(
+
+    "Before（練習前）",
+
+    "before",
+
+    beforePoints
+
+  );
+
+
+
+  renderPointGroup(
+
+    "After（練習後）",
+
+    "after",
+
+    afterPoints
+
+  );
+
+
+}
+
+
+
+// ==================================================
+// Before / Afterそれぞれを表示
+// ==================================================
+
+function renderPointGroup(
+
+  title,
+
+  mode,
+
+  points
+
+) {
+
+
+  const group =
+
+    document.createElement("div");
+
+
+  group.className =
+
+    "record-group";
+
+
+
+  const heading =
+
+    document.createElement("h4");
+
+
+  heading.textContent =
+
+    title;
+
+
+
+  group.appendChild(
+
+    heading
+
+  );
+
+
+
+  if (points.length === 0) {
+
+
+    const empty =
+
+      document.createElement("div");
+
+
+    empty.textContent =
+
+      "記録なし";
+
+
+    group.appendChild(empty);
+
+
+    savedPointsList.appendChild(group);
+
+
+    return;
+
+
+  }
+
+
+
+  points.forEach(
+
+    function (
+
+      point,
+
+      index
+
+    ) {
+
+
+      const div =
+
+        document.createElement("div");
+
+
+      div.className =
+
+        "saved-point";
+
+
+
+      div.innerHTML = `
+
+        <div class="saved-point-title">
+
+          📌 ポイント ${index + 1}
+
+        </div>
+
+        <div>
+
+          🏷 <strong>
+            ${point.phase}
+          </strong>
+
+        </div>
+
+        <div>
+
+          ⏱ ${point.time.toFixed(2)}秒
+
+        </div>
+
+        <div>
+
+          左肘：
+          ${point.leftElbow}°
+
+          ／
+
+          右肘：
+          ${point.rightElbow}°
+
+        </div>
+
+        <div>
+
+          左膝：
+          ${point.leftKnee}°
+
+          ／
+
+          右膝：
+          ${point.rightKnee}°
+
+        </div>
+
+        <button
+
+          class="jumpPointButton"
+
+          data-time="${point.time}"
+
+        >
+
+          ▶ この位置へ移動
+
+        </button>
+
+        <button
+
+          class="deletePointButton"
+
+          data-id="${point.id}"
+
+          data-mode="${mode}"
+
+        >
+
+          削除
+
+        </button>
+
+      `;
+
+
+
+      group.appendChild(div);
+
+
+    }
+
+  );
+
+
+
+  savedPointsList.appendChild(group);
+
+
+
+  // 保存地点へ移動
+
+  const jumpButtons =
+
+    group.querySelectorAll(
+
+      ".jumpPointButton"
+
+    );
+
+
+  jumpButtons.forEach(
+
+    function (button) {
+
+
+      button.addEventListener(
+
+        "click",
+
+        function () {
+
+
+          const time =
+
+            Number(
+
+              button.dataset.time
+
+            );
+
+
+          video.pause();
+
+
+          video.currentTime =
+
+            time;
+
+
+        }
+
+      );
+
+
+    }
+
+  );
+
+
+
+  // 削除
+
+  const deleteButtons =
+
+    group.querySelectorAll(
+
+      ".deletePointButton"
+
+    );
+
+
+  deleteButtons.forEach(
+
+    function (button) {
+
+
+      button.addEventListener(
+
+        "click",
+
+        function () {
+
+
+          const id =
+
+            Number(
+
+              button.dataset.id
+
+            );
+
+
+          const targetMode =
+
+            button.dataset.mode;
+
+
+
+          if (
+
+            targetMode === "before"
+
+          ) {
+
+
+            beforePoints =
+
+              beforePoints.filter(
+
+                point =>
+
+                  point.id !== id
+
+              );
+
+
+          }
+
+
+          else {
+
+
+            afterPoints =
+
+              afterPoints.filter(
+
+                point =>
+
+                  point.id !== id
+
+              );
+
+
+          }
+
+
+
+          renderSavedPoints();
+
+
+        }
+
+      );
+
+
+    }
+
+  );
+
+
+}
+
+
+
+// ==================================================
+// Before / After比較
+// ==================================================
+
+compareButton.addEventListener(
+
+  "click",
+
+  function () {
+
+
+    if (
+
+      beforePoints.length === 0 ||
+
+      afterPoints.length === 0
+
+    ) {
+
+
+      comparisonArea.innerHTML =
+
+        "BeforeとAfterの両方に解析ポイントを記録してください。";
+
+
+      return;
+
+
+    }
+
+
+
+    /*
+      現段階では
+      最初に記録したポイント同士を比較
+    */
+
+    const before =
+
+      beforePoints[0];
+
+
+    const after =
+
+      afterPoints[0];
+
+
+
+    comparisonArea.innerHTML = `
+
+      <h3>
+
+        📊 動作比較
+
+      </h3>
+
+
+      <p>
+
+        Before：
+        <strong>
+          ${before.phase}
+        </strong>
+
+        ／
+
+        After：
+        <strong>
+          ${after.phase}
+        </strong>
+
+      </p>
+
+
+      <table>
+
+
+        <tr>
+
+          <th>
+            項目
+          </th>
+
+          <th>
+            Before
+          </th>
+
+          <th>
+            After
+          </th>
+
+          <th>
+            変化
+          </th>
+
+        </tr>
+
+
+        <tr>
+
+          <td>
+            右肘
+          </td>
+
+          <td>
+            ${before.rightElbow}°
+          </td>
+
+          <td>
+            ${after.rightElbow}°
+          </td>
+
+          <td>
+            ${formatDifference(
+              after.rightElbow -
+              before.rightElbow
+            )}
+          </td>
+
+        </tr>
+
+
+        <tr>
+
+          <td>
+            左肘
+          </td>
+
+          <td>
+            ${before.leftElbow}°
+          </td>
+
+          <td>
+            ${after.leftElbow}°
+          </td>
+
+          <td>
+            ${formatDifference(
+              after.leftElbow -
+              before.leftElbow
+            )}
+          </td>
+
+        </tr>
+
+
+        <tr>
+
+          <td>
+            右膝
+          </td>
+
+          <td>
+            ${before.rightKnee}°
+          </td>
+
+          <td>
+            ${after.rightKnee}°
+          </td>
+
+          <td>
+            ${formatDifference(
+              after.rightKnee -
+              before.rightKnee
+            )}
+          </td>
+
+        </tr>
+
+
+        <tr>
+
+          <td>
+            左膝
+          </td>
+
+          <td>
+            ${before.leftKnee}°
+          </td>
+
+          <td>
+            ${after.leftKnee}°
+          </td>
+
+          <td>
+            ${formatDifference(
+              after.leftKnee -
+              before.leftKnee
+            )}
+          </td>
+
+        </tr>
+
+
+      </table>
+
+
+      <p>
+
+        ※角度の増減だけで
+        「良くなった・悪くなった」
+        とは判定しません。
+
+      </p>
+
+    `;
+
+
+  }
+
+);
+
+
+
+// ==================================================
+// 差を「+10°」「-5°」の形式にする
+// ==================================================
+
+function formatDifference(
+
+  difference
+
+) {
+
+
+  if (difference > 0) {
+
+
+    return (
+
+      "+" +
+
+      difference +
+
+      "°"
+
+    );
+
+
+  }
+
+
+  return (
+
+    difference +
+
+    "°"
+
+  );
+
+
+}
+
+
+
+// ==================================================
+// AI骨格描画
+// ==================================================
+
+function drawPose(
+
+  result
+
+) {
+
+
+  canvas.width =
+
+    video.videoWidth;
+
+
+  canvas.height =
+
+    video.videoHeight;
+
+
+
+  clearCanvas();
+
+
+
+  if (
+
+    !result.landmarks ||
+
+    result.landmarks.length === 0
+
+  ) {
+
+
+    currentAngles =
+
+      null;
+
+
+    return;
+
+
+  }
+
+
+
+  const landmarks =
+
+    result.landmarks[0];
+
+
+
+  // 左腕
+
+  const leftShoulder =
+    landmarks[11];
+
+  const leftElbow =
+    landmarks[13];
+
+  const leftWrist =
+    landmarks[15];
+
+
+
+  // 右腕
+
+  const rightShoulder =
+    landmarks[12];
+
+  const rightElbow =
+    landmarks[14];
+
+  const rightWrist =
+    landmarks[16];
+
+
+
+  // 左脚
+
+  const leftHip =
+    landmarks[23];
+
+  const leftKnee =
+    landmarks[25];
+
+  const leftAnkle =
+    landmarks[27];
+
+
+
+  // 右脚
+
+  const rightHip =
+    landmarks[24];
+
+  const rightKnee =
+    landmarks[26];
+
+  const rightAnkle =
+    landmarks[28];
+
+
+
+  // 角度計算
+
+  const leftElbowAngle =
+
+    calculateAngle(
+
+      leftShoulder,
+
+      leftElbow,
+
+      leftWrist
+
+    );
+
+
+  const rightElbowAngle =
+
+    calculateAngle(
+
+      rightShoulder,
+
+      rightElbow,
+
+      rightWrist
+
+    );
+
+
+  const leftKneeAngle =
+
+    calculateAngle(
+
+      leftHip,
+
+      leftKnee,
+
+      leftAnkle
+
+    );
+
+
+  const rightKneeAngle =
+
+    calculateAngle(
+
+      rightHip,
+
+      rightKnee,
+
+      rightAnkle
+
+    );
+
+
+
+  // 最新角度を保存
+
+  currentAngles = {
+
+    leftElbow:
+      leftElbowAngle,
+
+    rightElbow:
+      rightElbowAngle,
+
+    leftKnee:
+      leftKneeAngle,
+
+    rightKnee:
+      rightKneeAngle
+
+  };
+
+
+
+  // 骨格接続
+
+  const connections = [
+
+    [11, 13],
+
+    [13, 15],
+
+    [12, 14],
+
+    [14, 16],
+
+    [11, 12],
+
+    [11, 23],
+
+    [12, 24],
+
+    [23, 24],
+
+    [23, 25],
+
+    [25, 27],
+
+    [24, 26],
+
+    [26, 28]
+
+  ];
+
+
+
+  // 骨格線
+
+  ctx.strokeStyle =
+
+    "#00ff66";
+
+
+  ctx.lineWidth =
+
+    4;
+
+
+
+  for (
+
+    const connection
+
+    of connections
+
+  ) {
+
+
+    const start =
+
+      landmarks[
+
+        connection[0]
+
+      ];
+
+
+    const end =
+
+      landmarks[
+
+        connection[1]
+
+      ];
+
+
+
+    if (!start || !end) {
+
+      continue;
+
+    }
+
+
+
+    ctx.beginPath();
+
+
+
+    ctx.moveTo(
+
+      start.x *
+      canvas.width,
+
+      start.y *
+      canvas.height
+
+    );
+
+
+
+    ctx.lineTo(
+
+      end.x *
+      canvas.width,
+
+      end.y *
+      canvas.height
+
+    );
+
+
+
+    ctx.stroke();
+
+
+  }
+
+
+
+  // 関節点
+
+  ctx.fillStyle =
+
+    "#ff3333";
+
+
+
+  for (
+
+    const landmark
+
+    of landmarks
+
+  ) {
+
+
+    const x =
+
+      landmark.x *
+      canvas.width;
+
+
+    const y =
+
+      landmark.y *
+      canvas.height;
+
+
+
+    ctx.beginPath();
+
+
+
+    ctx.arc(
+
+      x,
+
+      y,
+
+      6,
+
+      0,
+
+      Math.PI * 2
+
+    );
+
+
+
+    ctx.fill();
+
+
+  }
+
+
+
+  // 角度表示
+
+  drawAngle(
+
+    leftElbow,
+
+    leftElbowAngle,
+
+    "左肘"
+
+  );
+
+
+  drawAngle(
+
+    rightElbow,
+
+    rightElbowAngle,
+
+    "右肘"
+
+  );
+
+
+  drawAngle(
+
+    leftKnee,
+
+    leftKneeAngle,
+
+    "左膝"
+
+  );
+
+
+  drawAngle(
+
+    rightKnee,
+
+    rightKneeAngle,
+
+    "右膝"
+
+  );
+
+
+}
+
+
+</script>
+
+
+</body>
+
+</html>
